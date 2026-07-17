@@ -1,6 +1,6 @@
 import { format, formatDistanceToNow, parseISO, isValid } from 'date-fns';
 
-export function formatDate(date: string | null | undefined, fmt = 'MMM d, yyyy'): string {
+export function formatDate(date, fmt = 'MMM d, yyyy') {
   if (!date) return '—';
   try {
     const d = typeof date === 'string' ? parseISO(date) : date;
@@ -11,7 +11,7 @@ export function formatDate(date: string | null | undefined, fmt = 'MMM d, yyyy')
   }
 }
 
-export function timeAgo(date: string | null | undefined): string {
+export function timeAgo(date) {
   if (!date) return '—';
   try {
     const d = typeof date === 'string' ? parseISO(date) : date;
@@ -22,7 +22,7 @@ export function timeAgo(date: string | null | undefined): string {
   }
 }
 
-export function formatSalary(min: number | null, max: number | null, currency = 'USD'): string {
+export function formatSalary(min, max, currency = 'USD') {
   if (min == null && max == null) return '—';
   const cur = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency + ' ';
   if (min != null && max != null) return `${cur}${fmtK(min)} - ${cur}${fmtK(max)}`;
@@ -30,23 +30,23 @@ export function formatSalary(min: number | null, max: number | null, currency = 
   return `${cur}${fmtK(max ?? 0)}`;
 }
 
-function fmtK(n: number): string {
+function fmtK(n) {
   if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
   return String(n);
 }
 
-export function formatExperience(min: number | null, max: number | null): string {
+export function formatExperience(min, max) {
   if (min == null && max == null) return '—';
   if (min != null && max != null) return `${min} - ${max} yrs`;
   if (min != null) return `${min}+ yrs`;
   return `${max} yrs`;
 }
 
-export function cn(...classes: (string | false | null | undefined)[]): string {
+export function cn(...classes) {
   return classes.filter(Boolean).join(' ');
 }
 
-export function downloadFile(filename: string, content: string, mime = 'text/plain'): void {
+export function downloadFile(filename, content, mime = 'text/plain') {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -58,10 +58,10 @@ export function downloadFile(filename: string, content: string, mime = 'text/pla
   URL.revokeObjectURL(url);
 }
 
-export function toCSV(rows: Record<string, unknown>[]): string {
+export function toCSV(rows) {
   if (!rows.length) return '';
   const headers = Object.keys(rows[0]);
-  const escape = (v: unknown) => {
+  const escape = (v) => {
     const s = v == null ? '' : String(v);
     if (s.includes(',') || s.includes('"') || s.includes('\n')) return `"${s.replace(/"/g, '""')}"`;
     return s;
@@ -73,7 +73,7 @@ export function toCSV(rows: Record<string, unknown>[]): string {
   return lines.join('\n');
 }
 
-export function initials(name: string | null | undefined): string {
+export function initials(name) {
   if (!name) return 'U';
   return name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 }

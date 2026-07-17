@@ -1,39 +1,43 @@
 import { useMemo, useState, useCallback } from 'react';
 import {
   Search, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight, ExternalLink,
-  ArrowUpDown, ArrowUp, ArrowDown, Download, Filter, X, SlidersHorizontal, Briefcase, MapPin, Building2,
+  ArrowUpDown, ArrowUp, ArrowDown, Download, Filter, X, SlidersHorizontal, Briefcase, MapPin, Building2, Trophy,
 } from 'lucide-react';
 import { Card, Badge, Button, Input, Select, Label, EmptyState, Modal } from '../components/ui';
 import { useApp } from '../context/AppContext';
+import { rankJobsByATS, atsScoreColor } from '../lib/ats';
 import {
   DEFAULT_FILTERS, WORK_MODES, EMPLOYMENT_TYPES, SOURCES,
-  APPLICATION_STATUS_META, type JobFilters, type JobWithMeta, type ApplicationStatus,
+  APPLICATION_STATUS_META,
 } from '../types';
 import { cn, formatSalary, formatExperience, formatDate, timeAgo, toCSV, downloadFile } from '../lib/utils';
 import { jobsToExportRows } from '../lib/jobImport';
 
-type SortField = 'title' | 'company' | 'location' | 'posted_date' | 'salary_min' | 'experience_min';
-type SortDir = 'asc' | 'desc';
-
 const PAGE_SIZE = 10;
 
 export function JobExplorerScreen() {
-  const { jobsWithMeta, jobs, saveJob, unsaveJob, setApplicationStatus } = useApp();
-  const [filters, setFilters] = useState<JobFilters>(DEFAULT_FILTERS);
+  const { jobsWithMeta, jobs, saveJob, unsaveJob, setApplicationStatus, profile } = useApp();
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
-  const [sortField, setSortField] = useState<SortField>('posted_date');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [sortField, setSortField] = useState('posted_date');
+  const [sortDir, setSortDir] = useState('desc');
   const [page, setPage] = useState(1);
   const [skillsInput, setSkillsInput] = useState('');
-  const [detailJob, setDetailJob] = useState<JobWithMeta | null>(null);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [detailJob, setDetailJob] = useState(null);
+  const [togglingId, setTogglingId] = useState(null);
+  const [atsMode, setAtsMode] = useState(false);
 
   const allMeta = useMemo(() => jobsWithMeta(), [jobsWithMeta]);
 
-  // Unique filter options from data
+  // ATS ranked jobs (when atsMode is on)
+  const atsRanked = useMemo(() => {
+    if (!atsMode || !profile) return [];
+    return rankJobsByATS(profile, jobs);
+  }, [atsMode, profile, jobs]);
+
   const filterOptions = useMemo(() => {
-    const locations = [...new Set(jobs.map((j) => j.location).filter(Boolean))] as string[];
-    const companies = [...new Set(jobs.map((j) => j.company).filter(Boolean))] as string[];
+    const locations = [...new Set(jobs.map((j) => j.location).filter(Boolean))];
+    const companies = [...new Set(jobs.map((j) => j.company).filter(Boolean))];
     return { locations, companies };
   }, [jobs]);
 
@@ -54,8 +58,10 @@ export function JobExplorerScreen() {
     return n;
   }, [filters]);
 
+  const sourceData = atsMode ? atsRanked : allMeta;
+
   const filtered = useMemo(() => {
-    let result = [...allMeta];
+    let result = [...sourceData];
     const search = filters.search.trim().toLowerCase();
     if (search) {
       result = result.filter((j) =>
@@ -68,11 +74,11 @@ export function JobExplorerScreen() {
     }
     if (filters.role) result = result.filter((j) => j.title.toLowerCase().includes(filters.role.toLowerCase()));
     if (filters.skills.length) result = result.filter((j) => filters.skills.every((s) => j.skills.some((js) => js.toLowerCase().includes(s.toLowerCase()))));
-    if (filters.experienceMin != null) result = result.filter((j) => (j.experience_max ?? 0) >= filters.experienceMin!);
-    if (filters.experienceMax != null) result = result.filter((j) => (j.experience_min ?? 0) <= filters.experienceMax!);
+    if (filters.experienceMin != null) result = result.filter((j) => (j.experience_max ?? 0) >= filters.experienceMin);
+    if (filters.experienceMax != null) result = result.filter((j) => (j.experience_min ?? 0) <= filters.experienceMax);
     if (filters.location) result = result.filter((j) => j.location?.toLowerCase().includes(filters.location.toLowerCase()));
-    if (filters.salaryMin != null) result = result.filter((j) => (j.salary_max ?? 0) >= filters.salaryMin!);
-    if (filters.salaryMax != null) result = result.filter((j) => (j.salary_min ?? Infinity) <= filters.salaryMax!);
+    if (filters.salaryMin != null) result = result.filter((j) => (j.salary_max ?? 0) >= filters.salaryMin);
+    if (filters.salaryMax != null) result = result.filter((j) => (j.salary_min ?? Infinity) <= filters.salaryMax);
     if (filters.workMode) result = result.filter((j) => j.work_mode?.toLowerCase() === filters.workMode.toLowerCase());
     if (filters.company) result = result.filter((j) => j.company?.toLowerCase().includes(filters.company.toLowerCase()));
     if (filters.employmentType) result = result.filter((j) => j.employment_type?.toLowerCase() === filters.employmentType.toLowerCase());
@@ -83,31 +89,31 @@ export function JobExplorerScreen() {
       result = result.filter((j) => j.posted_date ? new Date(j.posted_date) >= cutoff : false);
     }
 
-    // Sort
-    result.sort((a, b) => {
-      let av: string | number = '';
-      let bv: string | number = '';
-      switch (sortField) {
-        case 'title': av = a.title.toLowerCase(); bv = b.title.toLowerCase(); break;
-        case 'company': av = (a.company ?? '').toLowerCase(); bv = (b.company ?? '').toLowerCase(); break;
-        case 'location': av = (a.location ?? '').toLowerCase(); bv = (b.location ?? '').toLowerCase(); break;
-        case 'posted_date': av = a.posted_date ?? '1970-01-01'; bv = b.posted_date ?? '1970-01-01'; break;
-        case 'salary_min': av = a.salary_min ?? 0; bv = b.salary_min ?? 0; break;
-        case 'experience_min': av = a.experience_min ?? 0; bv = b.experience_min ?? 0; break;
-      }
-      if (av < bv) return sortDir === 'asc' ? -1 : 1;
-      if (av > bv) return sortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
+    if (!atsMode) {
+      result.sort((a, b) => {
+        let av = '', bv = '';
+        switch (sortField) {
+          case 'title': av = a.title.toLowerCase(); bv = b.title.toLowerCase(); break;
+          case 'company': av = (a.company ?? '').toLowerCase(); bv = (b.company ?? '').toLowerCase(); break;
+          case 'location': av = (a.location ?? '').toLowerCase(); bv = (b.location ?? '').toLowerCase(); break;
+          case 'posted_date': av = a.posted_date ?? '1970-01-01'; bv = b.posted_date ?? '1970-01-01'; break;
+          case 'salary_min': av = a.salary_min ?? 0; bv = b.salary_min ?? 0; break;
+          case 'experience_min': av = a.experience_min ?? 0; bv = b.experience_min ?? 0; break;
+        }
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
 
     return result;
-  }, [allMeta, filters, sortField, sortDir]);
+  }, [sourceData, filters, sortField, sortDir, atsMode]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pageData = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const toggleSort = (field: SortField) => {
+  const toggleSort = (field) => {
     if (sortField === field) {
       setSortDir((d) => d === 'asc' ? 'desc' : 'asc');
     } else {
@@ -124,17 +130,10 @@ export function JobExplorerScreen() {
     setSkillsInput('');
   };
 
-  const removeSkill = (s: string) => {
-    setFilters({ ...filters, skills: filters.skills.filter((x) => x !== s) });
-  };
+  const removeSkill = (s) => setFilters({ ...filters, skills: filters.skills.filter((x) => x !== s) });
+  const clearFilters = () => { setFilters(DEFAULT_FILTERS); setSkillsInput(''); setPage(1); };
 
-  const clearFilters = () => {
-    setFilters(DEFAULT_FILTERS);
-    setSkillsInput('');
-    setPage(1);
-  };
-
-  const toggleSave = useCallback(async (job: JobWithMeta) => {
+  const toggleSave = useCallback(async (job) => {
     setTogglingId(job.id);
     try {
       if (job.is_saved) await unsaveJob(job.id);
@@ -149,15 +148,12 @@ export function JobExplorerScreen() {
     downloadFile('jobs-export.csv', toCSV(rows), 'text/csv');
   };
 
-  const updateAppStatus = async (jobId: string, status: ApplicationStatus) => {
+  const updateAppStatus = async (jobId, status) => {
     try { await setApplicationStatus(jobId, status); } catch { /* ignore */ }
   };
 
-  const SortHeader = ({ field, label, className }: { field: SortField; label: string; className?: string }) => (
-    <button
-      onClick={() => toggleSort(field)}
-      className={cn('flex items-center gap-1 hover:text-slate-700 transition-colors', className)}
-    >
+  const SortHeader = ({ field, label, className }) => (
+    <button onClick={() => toggleSort(field)} className={cn('flex items-center gap-1 hover:text-slate-700 transition-colors', className)}>
       {label}
       {sortField === field ? (sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} className="text-slate-300" />}
     </button>
@@ -183,9 +179,19 @@ export function JobExplorerScreen() {
       <header className="mb-6 flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-1">Job Explorer</h1>
-          <p className="text-slate-500 text-sm">{filtered.length} of {jobs.length} jobs match your filters.</p>
+          <p className="text-slate-500 text-sm">{filtered.length} of {jobs.length} jobs{atsMode && ' (ATS sorted)'} match your filters.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {profile && (
+            <Button
+              variant={atsMode ? 'primary' : 'outline'}
+              size="md"
+              icon={<Trophy size={16} />}
+              onClick={() => { setAtsMode(!atsMode); setPage(1); }}
+            >
+              ATS Sort
+            </Button>
+          )}
           <Button variant="outline" size="md" icon={<Download size={16} />} onClick={handleExport} disabled={!filtered.length}>Export CSV</Button>
           <Button variant="outline" size="md" icon={<SlidersHorizontal size={16} />} onClick={() => setShowFilters(!showFilters)}>
             Filters{activeFilterCount > 0 && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-brand-600 text-white text-[10px] font-bold">{activeFilterCount}</span>}
@@ -323,6 +329,7 @@ export function JobExplorerScreen() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/50 text-slate-600 text-xs uppercase tracking-wider">
+                {atsMode && <th className="text-left px-4 py-3 font-semibold">ATS</th>}
                 <th className="text-left px-4 py-3 font-semibold"><SortHeader field="title" label="Job Title" /></th>
                 <th className="text-left px-4 py-3 font-semibold hidden md:table-cell"><SortHeader field="company" label="Company" /></th>
                 <th className="text-left px-4 py-3 font-semibold hidden lg:table-cell"><SortHeader field="location" label="Location" /></th>
@@ -336,8 +343,16 @@ export function JobExplorerScreen() {
             <tbody className="divide-y divide-slate-100">
               {pageData.map((job) => {
                 const appMeta = job.application ? APPLICATION_STATUS_META[job.application.status] : null;
+                const atsColor = job._atsScore != null ? atsScoreColor(job._atsScore) : null;
                 return (
                   <tr key={job.id} className="hover:bg-slate-50/60 transition-colors group">
+                    {atsMode && (
+                      <td className="px-4 py-3">
+                        <span className={cn('inline-flex items-center justify-center w-9 h-9 rounded-lg font-bold text-xs', atsColor.bg, atsColor.text)}>
+                          {job._atsScore}
+                        </span>
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <button onClick={() => setDetailJob(job)} className="text-left">
                         <p className="font-semibold text-slate-800 group-hover:text-brand-700 transition-colors line-clamp-1">{job.title}</p>
@@ -364,13 +379,7 @@ export function JobExplorerScreen() {
                           {job.is_saved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
                         </button>
                         {job.job_url && (
-                          <a
-                            href={job.job_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Apply / View"
-                            className="p-1.5 rounded-lg text-brand-600 hover:bg-brand-50 transition-colors"
-                          >
+                          <a href={job.job_url} target="_blank" rel="noopener noreferrer" title="Apply / View" className="p-1.5 rounded-lg text-brand-600 hover:bg-brand-50 transition-colors">
                             <ExternalLink size={16} />
                           </a>
                         )}
@@ -392,7 +401,6 @@ export function JobExplorerScreen() {
           />
         )}
 
-        {/* Pagination */}
         {filtered.length > 0 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 flex-wrap gap-2">
             <p className="text-xs text-slate-500">
@@ -428,6 +436,16 @@ export function JobExplorerScreen() {
               <DetailStat label="Source" value={detailJob.source || '—'} />
             </div>
 
+            {detailJob._atsScore != null && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+                <Trophy size={18} className="text-brand-600" />
+                <span className="text-sm font-semibold text-slate-700">ATS Match Score: {detailJob._atsScore}/100</span>
+                <Badge className={cn(atsScoreColor(detailJob._atsScore).bg, atsScoreColor(detailJob._atsScore).text)}>
+                  {atsScoreColor(detailJob._atsScore).label}
+                </Badge>
+              </div>
+            )}
+
             {detailJob.skills.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-slate-600 mb-2">Skills</p>
@@ -444,11 +462,10 @@ export function JobExplorerScreen() {
               </div>
             )}
 
-            {/* Application status selector */}
             <div>
               <p className="text-xs font-semibold text-slate-600 mb-2">Application Status</p>
               <div className="flex flex-wrap gap-2">
-                {(Object.keys(APPLICATION_STATUS_META) as ApplicationStatus[]).map((status) => {
+                {Object.keys(APPLICATION_STATUS_META).map((status) => {
                   const meta = APPLICATION_STATUS_META[status];
                   const isActive = detailJob.application?.status === status;
                   return (
@@ -484,7 +501,7 @@ export function JobExplorerScreen() {
   );
 }
 
-function DetailStat({ label, value }: { label: string; value: string }) {
+function DetailStat({ label, value }) {
   return (
     <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
       <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{label}</p>

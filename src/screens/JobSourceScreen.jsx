@@ -2,24 +2,23 @@ import { useCallback, useRef, useState } from 'react';
 import { UploadCloud, FileSpreadsheet, FileJson, FileText, Search, CheckCircle2, AlertCircle, Loader2, Globe, ArrowRight } from 'lucide-react';
 import { Button, Card, Badge, Select, Input } from '../components/ui';
 import { useApp } from '../context/AppContext';
-import { parseJobFile, type ParsedJobRow } from '../lib/jobImport';
+import { parseJobFile } from '../lib/jobImport';
 import { SOURCES } from '../types';
-import type { Screen } from '../components/Layout';
 
 const ACCEPTED = '.csv,.xlsx,.xls,.json';
 
-export function JobSourceScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
+export function JobSourceScreen({ onNavigate }) {
   const { importJobs } = useApp();
   const [dragOver, setDragOver] = useState(false);
   const [parsing, setParsing] = useState(false);
-  const [parsedRows, setParsedRows] = useState<ParsedJobRow[] | null>(null);
+  const [parsedRows, setParsedRows] = useState(null);
   const [fileName, setFileName] = useState('');
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; msg: string; count?: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const inputRef = useRef(null);
 
-  const handleFile = useCallback(async (file: File) => {
+  const handleFile = useCallback(async (file) => {
     setParsing(true);
     setError(null);
     setResult(null);
@@ -63,7 +62,6 @@ export function JobSourceScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
       </header>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Upload Card */}
         <Card className="p-6">
           <div className="flex items-center gap-2.5 mb-4">
             <div className="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center">
@@ -153,21 +151,20 @@ export function JobSourceScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
           </div>
         </Card>
 
-        {/* Live Search Card */}
         <LiveJobSearch onImported={() => onNavigate('explorer')} />
       </div>
     </div>
   );
 }
 
-function LiveJobSearch({ onImported }: { onImported: () => void }) {
+function LiveJobSearch({ onImported }) {
   const { importJobs } = useApp();
   const [query, setQuery] = useState('');
   const [source, setSource] = useState('LinkedIn');
   const [location, setLocation] = useState('');
   const [searching, setSearching] = useState(false);
-  const [results, setResults] = useState<ParsedJobRow[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState(null);
+  const [error, setError] = useState(null);
   const [importing, setImporting] = useState(false);
 
   const search = async () => {
@@ -187,7 +184,7 @@ function LiveJobSearch({ onImported }: { onImported: () => void }) {
         throw new Error(err.error || `Search failed (${res.status})`);
       }
       const data = await res.json();
-      const jobs: ParsedJobRow[] = data.jobs ?? [];
+      const jobs = data.jobs ?? [];
       if (!jobs.length) {
         setError('No live jobs found. Try a different query or source.');
       } else {

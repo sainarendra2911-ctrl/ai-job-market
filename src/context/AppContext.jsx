@@ -1,32 +1,15 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Job, Profile, SavedJob, Application, ApplicationStatus, JobWithMeta } from '../types';
 
-interface AppState {
-  profile: Profile | null;
-  jobs: Job[];
-  savedJobs: SavedJob[];
-  applications: Application[];
-  loading: boolean;
-  error: string | null;
-  refresh: () => Promise<void>;
-  upsertProfile: (p: Partial<Profile>) => Promise<void>;
-  saveJob: (jobId: string) => Promise<void>;
-  unsaveJob: (jobId: string) => Promise<void>;
-  setApplicationStatus: (jobId: string, status: ApplicationStatus) => Promise<void>;
-  importJobs: (jobs: Partial<Job>[]) => Promise<number>;
-  jobsWithMeta: () => JobWithMeta[];
-}
+const AppContext = createContext(null);
 
-const AppContext = createContext<AppState | null>(null);
-
-export function AppProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [savedJobs, setSavedJobs] = useState<SavedJob[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
+export function AppProvider({ children }) {
+  const [profile, setProfile] = useState(null);
+  const [jobs, setJobs] = useState([]);
+  const [savedJobs, setSavedJobs] = useState([]);
+  const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -42,10 +25,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (jobsRes.error) throw jobsRes.error;
       if (savedRes.error) throw savedRes.error;
       if (appRes.error) throw appRes.error;
-      setProfile((profRes.data as Profile | null) ?? null);
-      setJobs((jobsRes.data as Job[]) ?? []);
-      setSavedJobs((savedRes.data as SavedJob[]) ?? []);
-      setApplications((appRes.data as Application[]) ?? []);
+      setProfile(profRes.data ?? null);
+      setJobs(jobsRes.data ?? []);
+      setSavedJobs(savedRes.data ?? []);
+      setApplications(appRes.data ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
@@ -53,63 +36,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  useEffect(() => { refresh(); }, [refresh]);
 
-  const upsertProfile = useCallback(async (p: Partial<Profile>) => {
+  const upsertProfile = useCallback(async (p) => {
     if (profile?.id) {
       const { data, error } = await supabase
-        .from('profiles')
-        .update({ ...p, updated_at: new Date().toISOString() })
-        .eq('id', profile.id)
-        .select('*')
-        .single();
+        .from('profiles').update({ ...p, updated_at: new Date().toISOString() })
+        .eq('id', profile.id).select('*').single();
       if (error) throw error;
-      setProfile(data as Profile);
+      setProfile(data);
     } else {
       const { data, error } = await supabase.from('profiles').insert(p).select('*').single();
       if (error) throw error;
-      setProfile(data as Profile);
+      setProfile(data);
     }
   }, [profile]);
 
-  const saveJob = useCallback(async (jobId: string) => {
+  const saveJob = useCallback(async (jobId) => {
     const { error } = await supabase.from('saved_jobs').insert({ job_id: jobId });
     if (error && !error.message.includes('duplicate')) throw error;
     setSavedJobs((prev) => [...prev, { id: crypto.randomUUID(), job_id: jobId, created_at: new Date().toISOString() }]);
   }, []);
 
-  const unsaveJob = useCallback(async (jobId: string) => {
+  const unsaveJob = useCallback(async (jobId) => {
     const { error } = await supabase.from('saved_jobs').delete().eq('job_id', jobId);
     if (error) throw error;
     setSavedJobs((prev) => prev.filter((s) => s.job_id !== jobId));
   }, []);
 
-  const setApplicationStatus = useCallback(async (jobId: string, status: ApplicationStatus) => {
+  const setApplicationStatus = useCallback(async (jobId, status) => {
     const existing = applications.find((a) => a.job_id === jobId);
     const now = new Date().toISOString();
     if (existing) {
       const { data, error } = await supabase
         .from('applications')
         .update({ status, updated_at: now, applied_at: status === 'applied' && !existing.applied_at ? now : existing.applied_at })
-        .eq('id', existing.id)
-        .select('*')
-        .single();
+        .eq('id', existing.id).select('*').single();
       if (error) throw error;
-      setApplications((prev) => prev.map((a) => (a.id === existing.id ? (data as Application) : a)));
+      setApplications((prev) => prev.map((a) => (a.id === existing.id ? data : a)));
     } else {
       const { data, error } = await supabase
         .from('applications')
         .insert({ job_id: jobId, status, applied_at: status === 'applied' ? now : null })
-        .select('*')
-        .single();
+        .select('*').single();
       if (error) throw error;
-      setApplications((prev) => [...prev, (data as Application)]);
+      setApplications((prev) => [...prev, data]);
     }
   }, [applications]);
 
-  const importJobs = useCallback(async (newJobs: Partial<Job>[]): Promise<number> => {
+  const importJobs = useCallback(async (newJobs) => {
     if (!newJobs.length) return 0;
     const cleaned = newJobs.map((j) => ({
       title: j.title || 'Untitled',
@@ -131,11 +106,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
     const { data, error } = await supabase.from('jobs').insert(cleaned).select('*');
     if (error) throw error;
-    setJobs((prev) => [...(data as Job[]), ...prev]);
+    setJobs((prev) => [...(data ?? []), ...prev]);
     return data?.length ?? 0;
   }, []);
 
-  const jobsWithMeta = useCallback((): JobWithMeta[] => {
+  const jobsWithMeta = useCallback(() => {
     const savedSet = new Set(savedJobs.map((s) => s.job_id));
     const appMap = new Map(applications.map((a) => [a.job_id, a]));
     return jobs.map((j) => ({
@@ -157,7 +132,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useApp(): AppState {
+export function useApp() {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error('useApp must be used within AppProvider');
   return ctx;

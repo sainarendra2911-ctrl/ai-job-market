@@ -1,26 +1,16 @@
-import { type ButtonHTMLAttributes, type ReactNode, type InputHTMLAttributes, type SelectHTMLAttributes, useEffect } from 'react';
+import { useEffect } from 'react';
 import { cn } from '../lib/utils';
 import { X } from 'lucide-react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
-type ButtonSize = 'sm' | 'md' | 'lg';
-
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  loading?: boolean;
-  icon?: ReactNode;
-}
-
-export function Button({ variant = 'primary', size = 'md', loading, icon, className, children, disabled, ...props }: ButtonProps) {
-  const variants: Record<ButtonVariant, string> = {
+export function Button({ variant = 'primary', size = 'md', loading, icon, className, children, disabled, ...props }) {
+  const variants = {
     primary: 'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 shadow-sm',
     secondary: 'bg-slate-100 text-slate-800 hover:bg-slate-200 active:bg-slate-300',
     ghost: 'text-slate-600 hover:bg-slate-100 active:bg-slate-200',
     danger: 'bg-rose-600 text-white hover:bg-rose-700 active:bg-rose-800 shadow-sm',
     outline: 'border border-slate-300 text-slate-700 hover:bg-slate-50 active:bg-slate-100 bg-white',
   };
-  const sizes: Record<ButtonSize, string> = {
+  const sizes = {
     sm: 'h-8 px-3 text-xs gap-1.5',
     md: 'h-10 px-4 text-sm gap-2',
     lg: 'h-12 px-6 text-base gap-2.5',
@@ -40,11 +30,11 @@ export function Button({ variant = 'primary', size = 'md', loading, icon, classN
   );
 }
 
-export function Card({ className, children }: { className?: string; children: ReactNode }) {
+export function Card({ className, children }) {
   return <div className={cn('bg-white rounded-xl border border-slate-200/80 card-shadow', className)}>{children}</div>;
 }
 
-export function Badge({ children, className, dot }: { children: ReactNode; className?: string; dot?: string }) {
+export function Badge({ children, className, dot }) {
   return (
     <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', className)}>
       {dot && <span className={cn('w-1.5 h-1.5 rounded-full', dot)} />}
@@ -53,7 +43,7 @@ export function Badge({ children, className, dot }: { children: ReactNode; class
   );
 }
 
-export function Spinner({ size = 20, className }: { size?: number; className?: string }) {
+export function Spinner({ size = 20, className }) {
   return (
     <svg className={cn('animate-spin', className)} width={size} height={size} viewBox="0 0 24 24" fill="none">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
@@ -62,7 +52,7 @@ export function Spinner({ size = 20, className }: { size?: number; className?: s
   );
 }
 
-export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+export function Input({ className, ...props }) {
   return (
     <input
       className={cn(
@@ -74,7 +64,7 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
   );
 }
 
-export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement> & { children: ReactNode }) {
+export function Select({ className, children, ...props }) {
   return (
     <select
       className={cn(
@@ -88,14 +78,14 @@ export function Select({ className, children, ...props }: SelectHTMLAttributes<H
   );
 }
 
-export function Label({ children, className }: { children: ReactNode; className?: string }) {
+export function Label({ children, className }) {
   return <label className={cn('block text-xs font-semibold text-slate-600 mb-1.5', className)}>{children}</label>;
 }
 
-export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }: { open: boolean; onClose: () => void; title?: string; children: ReactNode; maxWidth?: string }) {
+export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }) {
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const handler = (e) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', handler);
     document.body.style.overflow = 'hidden';
     return () => { window.removeEventListener('keydown', handler); document.body.style.overflow = ''; };
@@ -120,7 +110,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }:
   );
 }
 
-export function EmptyState({ icon, title, description, action }: { icon: ReactNode; title: string; description?: string; action?: ReactNode }) {
+export function EmptyState({ icon, title, description, action }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-4">{icon}</div>
@@ -131,6 +121,6 @@ export function EmptyState({ icon, title, description, action }: { icon: ReactNo
   );
 }
 
-export function Skeleton({ className }: { className?: string }) {
+export function Skeleton({ className }) {
   return <div className={cn('skeleton rounded-lg', className)} />;
 }

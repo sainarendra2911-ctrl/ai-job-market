@@ -4,33 +4,29 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement,
   PointElement, LineElement, Tooltip, Legend, Filler,
 } from 'chart.js';
-import { Briefcase, Bookmark, Send, TrendingUp, MapPin, Building2, Sparkles, ArrowRight } from 'lucide-react';
+import { Briefcase, Bookmark, Send, TrendingUp, MapPin, Building2, Sparkles, ArrowRight, Calendar, Clock } from 'lucide-react';
 import { Card, Badge, Button, Skeleton, EmptyState } from '../components/ui';
 import { useApp } from '../context/AppContext';
-import { APPLICATION_STATUS_META, type ApplicationStatus } from '../types';
-import type { Screen } from '../components/Layout';
+import { APPLICATION_STATUS_META } from '../types';
 import { cn, initials, formatDate } from '../lib/utils';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Tooltip, Legend, Filler);
 
-export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => void }) {
+export function DashboardScreen({ onNavigate }) {
   const { profile, jobs, savedJobs, applications, loading } = useApp();
 
   const stats = useMemo(() => {
-    const byStatus: Record<string, number> = { saved: 0, applied: 0, interview: 0, offer: 0, rejected: 0 };
+    const byStatus = { saved: 0, applied: 0, interview: 0, offer: 0, rejected: 0 };
     applications.forEach((a) => { byStatus[a.status] = (byStatus[a.status] || 0) + 1; });
 
-    const bySource: Record<string, number> = {};
+    const bySource = {};
     jobs.forEach((j) => { if (j.source) bySource[j.source] = (bySource[j.source] || 0) + 1; });
 
-    const byLocation: Record<string, number> = {};
+    const byLocation = {};
     jobs.forEach((j) => { if (j.location) byLocation[j.location] = (byLocation[j.location] || 0) + 1; });
 
-    const byCompany: Record<string, number> = {};
-    jobs.forEach((j) => { if (j.company) byCompany[j.company] = (byCompany[j.company] || 0) + 1; });
-
-    // Jobs per day (last 14 days)
-    const days: { label: string; count: number }[] = [];
+    // Jobs imported per day (14 days)
+    const days = [];
     const now = new Date();
     for (let i = 13; i >= 0; i--) {
       const d = new Date(now);
@@ -40,7 +36,32 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
       days.push({ label: d.toLocaleDateString('en', { month: 'short', day: 'numeric' }), count });
     }
 
-    return { byStatus, bySource, byLocation, byCompany, days };
+    // --- NEW: Last 10 applied jobs (by applied_at or created_at) ---
+    const appliedJobs = applications
+      .filter((a) => a.status === 'applied' || a.applied_at)
+      .sort((a, b) => new Date(b.applied_at || b.created_at) - new Date(a.applied_at || a.created_at))
+      .slice(0, 10)
+      .map((a) => {
+        const job = jobs.find((j) => j.id === a.job_id);
+        return job ? { title: job.title, company: job.company, date: a.applied_at || a.created_at, status: a.status } : null;
+      })
+      .filter(Boolean);
+
+    // --- NEW: Application counts for last week, month, year ---
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo = new Date(); monthAgo.setMonth(monthAgo.getMonth() - 1);
+    const yearAgo = new Date(); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+
+    const countSince = (cutoff) => applications.filter((a) => {
+      const d = new Date(a.applied_at || a.created_at);
+      return d >= cutoff;
+    }).length;
+
+    const appliedLastWeek = countSince(weekAgo);
+    const appliedLastMonth = countSince(monthAgo);
+    const appliedLastYear = countSince(yearAgo);
+
+    return { byStatus, bySource, byLocation, days, appliedJobs, appliedLastWeek, appliedLastMonth, appliedLastYear };
   }, [jobs, applications]);
 
   if (loading) {
@@ -65,7 +86,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
     { label: 'Interviews', value: stats.byStatus.interview + stats.byStatus.offer, icon: TrendingUp, color: 'emerald' },
   ];
 
-  const colorMap: Record<string, { bg: string; text: string; ring: string }> = {
+  const colorMap = {
     brand: { bg: 'bg-brand-50', text: 'text-brand-600', ring: 'ring-brand-100' },
     amber: { bg: 'bg-amber-50', text: 'text-amber-600', ring: 'ring-amber-100' },
     blue: { bg: 'bg-blue-50', text: 'text-blue-600', ring: 'ring-blue-100' },
@@ -126,9 +147,39 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
         })}
       </div>
 
-      {/* Charts */}
+      {/* NEW: Application timeline KPIs (week / month / year) */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <Card className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+            <Clock size={18} />
+          </div>
+          <div>
+            <p className="text-xl sm:text-2xl font-extrabold text-slate-900">{stats.appliedLastWeek}</p>
+            <p className="text-[11px] text-slate-500 font-medium">Applied (last week)</p>
+          </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 shrink-0">
+            <Calendar size={18} />
+          </div>
+          <div>
+            <p className="text-xl sm:text-2xl font-extrabold text-slate-900">{stats.appliedLastMonth}</p>
+            <p className="text-[11px] text-slate-500 font-medium">Applied (last month)</p>
+          </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+            <TrendingUp size={18} />
+          </div>
+          <div>
+            <p className="text-xl sm:text-2xl font-extrabold text-slate-900">{stats.appliedLastYear}</p>
+            <p className="text-[11px] text-slate-500 font-medium">Applied (last year)</p>
+          </div>
+        </Card>
+      </div>
+
+      {/* Charts row 1 */}
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
-        {/* Application status doughnut */}
         <Card className="p-5">
           <h3 className="font-bold text-slate-800 text-sm mb-4">Application Status</h3>
           {applications.length === 0 ? (
@@ -139,10 +190,9 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
                 data={{
                   labels: Object.values(APPLICATION_STATUS_META).map((m) => m.label),
                   datasets: [{
-                    data: (Object.keys(APPLICATION_STATUS_META) as ApplicationStatus[]).map((s) => stats.byStatus[s] || 0),
+                    data: Object.keys(APPLICATION_STATUS_META).map((s) => stats.byStatus[s] || 0),
                     backgroundColor: ['#94a3b8', '#3b82f6', '#f59e0b', '#10b981', '#f43f5e'],
-                    borderWidth: 0,
-                    hoverOffset: 4,
+                    borderWidth: 0, hoverOffset: 4,
                   }],
                 }}
                 options={{ cutout: '65%', plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 11 }, usePointStyle: true, pointStyle: 'circle' } } } }}
@@ -151,7 +201,6 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
           )}
         </Card>
 
-        {/* Jobs by source */}
         <Card className="p-5 lg:col-span-2">
           <h3 className="font-bold text-slate-800 text-sm mb-4">Jobs by Source</h3>
           {jobs.length === 0 ? (
@@ -160,13 +209,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
             <Bar
               data={{
                 labels: Object.keys(stats.bySource),
-                datasets: [{
-                  label: 'Jobs',
-                  data: Object.values(stats.bySource),
-                  backgroundColor: '#0ea5e9',
-                  borderRadius: 6,
-                  maxBarThickness: 40,
-                }],
+                datasets: [{ label: 'Jobs', data: Object.values(stats.bySource), backgroundColor: '#0ea5e9', borderRadius: 6, maxBarThickness: 40 }],
               }}
               options={{
                 plugins: { legend: { display: false } },
@@ -178,8 +221,48 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
         </Card>
       </div>
 
+      {/* NEW: Last 10 Applied Jobs chart */}
+      <Card className="p-5 mb-6">
+        <h3 className="font-bold text-slate-800 text-sm mb-4">Last 10 Applied Jobs</h3>
+        {stats.appliedJobs.length === 0 ? (
+          <EmptyState icon={<Send size={24} />} title="No applications yet" description="Jobs you apply to will appear here in a timeline." />
+        ) : (
+          <Bar
+            data={{
+              labels: stats.appliedJobs.map((j, i) => `#${i + 1}`),
+              datasets: [{
+                label: 'Application',
+                data: stats.appliedJobs.map((_, i) => stats.appliedJobs.length - i),
+                backgroundColor: stats.appliedJobs.map((j) =>
+                  j.status === 'offer' ? '#10b981' : j.status === 'interview' ? '#f59e0b' : j.status === 'rejected' ? '#f43f5e' : '#3b82f6'
+                ),
+                borderRadius: 6,
+                maxBarThickness: 35,
+              }],
+            }}
+            options={{
+              indexAxis: 'y',
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    title: (ctx) => stats.appliedJobs[ctx[0].dataIndex]?.title || '',
+                    label: (ctx) => {
+                      const j = stats.appliedJobs[ctx.dataIndex];
+                      return [`${j.company || '—'}`, `Applied: ${formatDate(j.date)}`, `Status: ${APPLICATION_STATUS_META[j.status]?.label || j.status}`];
+                    },
+                  },
+                },
+              },
+              scales: { x: { display: false }, y: { ticks: { font: { size: 11 } } } },
+              maintainAspectRatio: true,
+            }}
+          />
+        )}
+      </Card>
+
+      {/* Charts row 2 */}
       <div className="grid lg:grid-cols-2 gap-4">
-        {/* Jobs imported over time */}
         <Card className="p-5">
           <h3 className="font-bold text-slate-800 text-sm mb-4">Jobs Imported (14 days)</h3>
           {jobs.length === 0 ? (
@@ -189,15 +272,9 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
               data={{
                 labels: stats.days.map((d) => d.label),
                 datasets: [{
-                  label: 'Jobs',
-                  data: stats.days.map((d) => d.count),
-                  borderColor: '#0ea5e9',
-                  backgroundColor: 'rgba(14, 165, 233, 0.1)',
-                  fill: true,
-                  tension: 0.35,
-                  pointBackgroundColor: '#0284c7',
-                  pointRadius: 3,
-                  pointHoverRadius: 5,
+                  label: 'Jobs', data: stats.days.map((d) => d.count),
+                  borderColor: '#0ea5e9', backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                  fill: true, tension: 0.35, pointBackgroundColor: '#0284c7', pointRadius: 3, pointHoverRadius: 5,
                 }],
               }}
               options={{
@@ -209,7 +286,6 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (s: Screen) => voi
           )}
         </Card>
 
-        {/* Top locations */}
         <Card className="p-5">
           <h3 className="font-bold text-slate-800 text-sm mb-4">Top Locations</h3>
           {jobs.length === 0 ? (

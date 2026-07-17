@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { AppProvider } from './context/AppContext';
-import { Layout, type Screen } from './components/Layout';
+import { Layout } from './components/Layout';
 import { JobSourceScreen } from './screens/JobSourceScreen';
 import { ResumeUploadScreen } from './screens/ResumeUploadScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { JobExplorerScreen } from './screens/JobExplorerScreen';
 
 function App() {
-  const [screen, setScreen] = useState<Screen>('dashboard');
+  const [screen, setScreen] = useState('dashboard');
 
   return (
     <AppProvider>

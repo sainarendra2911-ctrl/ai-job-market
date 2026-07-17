@@ -1,6 +1,6 @@
 import mammoth from 'mammoth';
 
-async function parsePdf(file: File): Promise<string> {
+async function parsePdf(file) {
   const pdfjs = await import('pdfjs-dist/build/pdf');
   pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
   const buf = await file.arrayBuffer();
@@ -9,18 +9,18 @@ async function parsePdf(file: File): Promise<string> {
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    text += content.items.map((item: { str?: string }) => item.str ?? '').join(' ') + '\n';
+    text += content.items.map((item) => item.str ?? '').join(' ') + '\n';
   }
   return text;
 }
 
-async function parseDocx(file: File): Promise<string> {
+async function parseDocx(file) {
   const buf = await file.arrayBuffer();
   const result = await mammoth.extractRawText({ arrayBuffer: buf });
   return result.value;
 }
 
-export async function extractResumeText(file: File): Promise<string> {
+export async function extractResumeText(file) {
   const name = file.name.toLowerCase();
   if (name.endsWith('.pdf')) return parsePdf(file);
   if (name.endsWith('.docx')) return parseDocx(file);
@@ -41,18 +41,7 @@ const SKILL_LIBRARY = [
   'Tableau', 'Power BI', 'Excel', 'SEO', 'Marketing', 'Salesforce', 'HubSpot',
 ];
 
-export interface ParsedProfile {
-  name: string | null;
-  email: string | null;
-  phone: string | null;
-  title: string | null;
-  summary: string | null;
-  skills: string[];
-  experience_years: number | null;
-  education: string | null;
-}
-
-export function parseProfileFromText(text: string): ParsedProfile {
+export function parseProfileFromText(text) {
   const clean = text.replace(/\s+/g, ' ').trim();
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
 

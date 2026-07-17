@@ -1,18 +1,23 @@
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import { Briefcase, LayoutDashboard, FileUp, UploadCloud, Search, Menu, X, Sparkles } from 'lucide-react';
 import { cn, initials } from '../lib/utils';
 import { useApp } from '../context/AppContext';
 
-export type Screen = 'source' | 'resume' | 'dashboard' | 'explorer';
+export const NAV_SCREENS = {
+  SOURCE: 'source',
+  RESUME: 'resume',
+  DASHBOARD: 'dashboard',
+  EXPLORER: 'explorer',
+};
 
-const NAV_ITEMS: { id: Screen; label: string; icon: typeof Briefcase }[] = [
+const NAV_ITEMS = [
   { id: 'source', label: 'Job Source', icon: UploadCloud },
   { id: 'resume', label: 'Resume', icon: FileUp },
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'explorer', label: 'Job Explorer', icon: Search },
 ];
 
-export function Layout({ active, onNavigate, children }: { active: Screen; onNavigate: (s: Screen) => void; children: ReactNode }) {
+export function Layout({ active, onNavigate, children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { profile, jobs, applications } = useApp();
 
@@ -62,7 +67,7 @@ export function Layout({ active, onNavigate, children }: { active: Screen; onNav
             <Sparkles size={14} className="text-brand-600" />
             <p className="text-xs font-bold text-slate-700">AI Matching</p>
           </div>
-          <p className="text-[11px] text-slate-500 leading-relaxed mb-2.5">Upload your resume to unlock smart job matching and scoring.</p>
+          <p className="text-[11px] text-slate-500 leading-relaxed mb-2.5">Upload your resume to unlock smart job matching and ATS scoring.</p>
           <button onClick={() => { onNavigate('resume'); setMobileOpen(false); }} className="w-full text-xs font-semibold text-brand-700 hover:text-brand-800 transition-colors">
             Get started →
           </button>

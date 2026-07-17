@@ -1,48 +1,28 @@
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
-import type { Job } from '../types';
 
-export interface ParsedJobRow {
-  title?: string;
-  company?: string;
-  location?: string;
-  experience_min?: number | null;
-  experience_max?: number | null;
-  salary_min?: number | null;
-  salary_max?: number | null;
-  currency?: string;
-  work_mode?: string;
-  employment_type?: string;
-  posted_date?: string | null;
-  source?: string;
-  job_url?: string;
-  skills?: string[];
-  keywords?: string[];
-  description?: string;
-}
-
-function normalizeRow(row: Record<string, unknown>): ParsedJobRow {
-  const get = (keys: string[]): unknown => {
+function normalizeRow(row) {
+  const get = (keys) => {
     for (const k of Object.keys(row)) {
       const lk = k.toLowerCase().trim().replace(/[\s_]/g, '');
       if (keys.some((key) => lk === key.replace(/[\s_]/g, ''))) return row[k];
     }
     return undefined;
   };
-  const str = (v: unknown): string | undefined => (v == null || v === '' ? undefined : String(v).trim());
-  const num = (v: unknown): number | null => {
+  const str = (v) => (v == null || v === '' ? undefined : String(v).trim());
+  const num = (v) => {
     if (v == null || v === '') return null;
     const n = Number(String(v).replace(/[^\d.-]/g, ''));
     return isNaN(n) ? null : n;
   };
-  const arr = (v: unknown): string[] | undefined => {
+  const arr = (v) => {
     if (v == null || v === '') return undefined;
     const s = String(v);
     if (s.includes(',')) return s.split(',').map((x) => x.trim()).filter(Boolean);
     if (s.includes('|')) return s.split('|').map((x) => x.trim()).filter(Boolean);
     return [s.trim()];
   };
-  const dateStr = (v: unknown): string | null => {
+  const dateStr = (v) => {
     if (v == null || v === '') return null;
     if (v instanceof Date) return v.toISOString().split('T')[0];
     const s = String(v).trim();
@@ -71,21 +51,21 @@ function normalizeRow(row: Record<string, unknown>): ParsedJobRow {
   };
 }
 
-export async function parseJobFile(file: File): Promise<ParsedJobRow[]> {
+export async function parseJobFile(file) {
   const name = file.name.toLowerCase();
 
   if (name.endsWith('.json')) {
     const text = await file.text();
     const data = JSON.parse(text);
     const arr = Array.isArray(data) ? data : [data];
-    return arr.map((r: Record<string, unknown>) => normalizeRow(r)).filter((r) => r.title);
+    return arr.map((r) => normalizeRow(r)).filter((r) => r.title);
   }
   if (name.endsWith('.csv')) {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
-        complete: (res) => resolve((res.data as Record<string, unknown>[]).map(normalizeRow).filter((r) => r.title)),
+        complete: (res) => resolve(res.data.map(normalizeRow).filter((r) => r.title)),
         error: reject,
       });
     });
@@ -94,13 +74,13 @@ export async function parseJobFile(file: File): Promise<ParsedJobRow[]> {
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf);
     const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
+    const rows = XLSX.utils.sheet_to_json(ws);
     return rows.map(normalizeRow).filter((r) => r.title);
   }
   throw new Error('Unsupported file format. Please upload CSV, XLSX, or JSON.');
 }
 
-export function jobsToExportRows(jobs: (Partial<Job> & { is_saved?: boolean; application?: { status?: string } | null })[]) {
+export function jobsToExportRows(jobs) {
   return jobs.map((j) => ({
     Title: j.title || '',
     Company: j.company || '',
@@ -118,5 +98,6 @@ export function jobsToExportRows(jobs: (Partial<Job> & { is_saved?: boolean; app
     Skills: Array.isArray(j.skills) ? j.skills.join(', ') : '',
     Saved: j.is_saved ? 'Yes' : 'No',
     'App Status': j.application?.status || '',
+    'ATS Score': j._atsScore ?? '',
   }));
 }
