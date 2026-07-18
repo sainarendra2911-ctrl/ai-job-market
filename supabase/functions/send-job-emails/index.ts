@@ -129,9 +129,19 @@ function buildEmailHTML(req) {
 </html>`;
 }
 
-async function sendWithResend(req, html) {
+async function logEmail(supabase, log) {
+  try {
+    await supabase.from('email_logs').insert(log);
+  } catch { /* logging is best-effort */ }
+}
+
+async function sendWithResend(req, html, supabase) {
   const apiKey = Deno.env.get('RESEND_API_KEY');
   if (!apiKey) {
+    await logEmail(supabase, {
+      recipient_email: req.email, recipient_name: req.name, email_type: req.type,
+      jobs_count: req.jobs.length, status: 'failed', error_message: 'RESEND_API_KEY not configured',
+    });
     return { sent: false, preview: true, message: 'Email not sent — RESEND_API_KEY not configured. Configure the Resend API key in edge function secrets to enable email delivery.' };
   }
 
@@ -153,10 +163,18 @@ async function sendWithResend(req, html) {
 
   if (!res.ok) {
     const err = await res.text();
+    await logEmail(supabase, {
+      recipient_email: req.email, recipient_name: req.name, email_type: req.type,
+      jobs_count: req.jobs.length, status: 'failed', error_message: `Resend ${res.status}: ${err}`,
+    });
     throw new Error(`Resend API error: ${res.status} ${err}`);
   }
 
   const data = await res.json();
+  await logEmail(supabase, {
+    recipient_email: req.email, recipient_name: req.name, email_type: req.type,
+    jobs_count: req.jobs.length, status: 'sent', provider_id: data.id,
+  });
   return { sent: true, id: data.id, message: `Email sent to ${req.email}` };
 }
 
@@ -180,7 +198,11 @@ Deno.serve(async (req) => {
     }
 
     const html = buildEmailHTML(body);
-    const result = await sendWithResend(body, html);
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+    const result = await sendWithResend(body, html, supabase);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
