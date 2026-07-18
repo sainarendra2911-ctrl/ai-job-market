@@ -149,35 +149,7 @@ export function DashboardScreen({ onNavigate }) {
       </div>
 
       {/* NEW: Application timeline KPIs (week / month / year) */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <Card className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-            <Clock size={18} />
-          </div>
-          <div>
-            <p className="text-xl sm:text-2xl font-extrabold text-slate-900">{stats.appliedLastWeek}</p>
-            <p className="text-[11px] text-slate-500 font-medium">Applied (last week)</p>
-          </div>
-        </Card>
-        <Card className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 shrink-0">
-            <Calendar size={18} />
-          </div>
-          <div>
-            <p className="text-xl sm:text-2xl font-extrabold text-slate-900">{stats.appliedLastMonth}</p>
-            <p className="text-[11px] text-slate-500 font-medium">Applied (last month)</p>
-          </div>
-        </Card>
-        <Card className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-            <TrendingUp size={18} />
-          </div>
-          <div>
-            <p className="text-xl sm:text-2xl font-extrabold text-slate-900">{stats.appliedLastYear}</p>
-            <p className="text-[11px] text-slate-500 font-medium">Applied (last year)</p>
-          </div>
-        </Card>
-      </div>
+     
 
        <ApplicationsOverTimeChart />
 
