@@ -2,120 +2,123 @@ import {
     Chart as ChartJS,
     CategoryScale,
     LinearScale,
-    BarElement,
+    PointElement,
+    LineElement,
+    Title,
     Tooltip,
     Legend,
+    Filler,
 } from "chart.js";
-import { Bar } from "react-chartjs-2";
+
+import { Line } from "react-chartjs-2";
 
 ChartJS.register(
     CategoryScale,
     LinearScale,
-    BarElement,
+    PointElement,
+    LineElement,
+    Title,
     Tooltip,
-    Legend
+    Legend,
+    Filler
 );
 
-export default function TrendingSkills() {
-    const trendingSkills = [
-        { skill: "Artificial Intelligence", jobs: 2845, growth: "+38%", color: "#6366F1" },
-        { skill: "Python", jobs: 2612, growth: "+29%", color: "#3B82F6" },
-        { skill: "React", jobs: 2384, growth: "+24%", color: "#06B6D4" },
-        { skill: "AWS", jobs: 2145, growth: "+21%", color: "#10B981" },
-        { skill: "Node.js", jobs: 1988, growth: "+19%", color: "#22C55E" },
-        { skill: "TypeScript", jobs: 1825, growth: "+18%", color: "#2563EB" },
-        { skill: "Docker", jobs: 1652, growth: "+16%", color: "#0EA5E9" },
-        { skill: "Kubernetes", jobs: 1489, growth: "+15%", color: "#8B5CF6" },
-        { skill: "Next.js", jobs: 1368, growth: "+14%", color: "#111827" },
-        { skill: "Java", jobs: 1297, growth: "+12%", color: "#F97316" },
-    ];
+const data = {
+    labels: ["Jul 1", "Jul 2", "Jul 3", "Jul 4", "Jul 5", "Jul 6", "Jul 7"],
+    datasets: [
+        {
+            label: "Applications",
+            data: [2, 4, 3, 6, 5, 8, 10],
+            borderColor: "#3B82F6",
+            backgroundColor: "rgba(59,130,246,0.15)",
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: "#3B82F6",
+            pointBorderColor: "#fff",
+            pointBorderWidth: 2,
+        },
+    ],
+};
 
-    const data = {
-        labels: trendingSkills.map((item) => item.skill),
-        datasets: [
-            {
-                label: "Open Jobs",
-                data: trendingSkills.map((item) => item.jobs),
-                backgroundColor: trendingSkills.map((item) => item.color),
-                borderRadius: 8,
-                borderSkipped: false,
-            },
-        ],
-    };
+const options = {
+    responsive: true,
+    maintainAspectRatio: false,
 
-    const options = {
-        responsive: true,
-        maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            display: false,
+        },
 
-        plugins: {
-            legend: {
+        title: {
+            display: false,
+        },
+
+        tooltip: {
+            mode: "index",
+            intersect: false,
+            backgroundColor: "#1e293b",
+            titleColor: "#fff",
+            bodyColor: "#fff",
+            padding: 12,
+            borderColor: "#334155",
+            borderWidth: 1,
+        },
+    },
+
+    interaction: {
+        mode: "nearest",
+        intersect: false,
+    },
+
+    scales: {
+        x: {
+            grid: {
                 display: false,
             },
-            tooltip: {
-                callbacks: {
-                    label: (context) =>
-                        `${context.raw.toLocaleString()} Open Jobs`,
-                },
+            ticks: {
+                color: "#64748B",
             },
         },
 
-        scales: {
-            x: {
-                grid: {
-                    display: false,
-                },
-                ticks: {
-                    maxRotation: 45,
-                    minRotation: 45,
-                },
+        y: {
+            beginAtZero: true,
+            ticks: {
+                stepSize: 2,
+                color: "#64748B",
             },
-
-            y: {
-                beginAtZero: true,
-                grid: {
-                    color: "#E5E7EB",
-                },
+            grid: {
+                color: "#E2E8F0",
             },
         },
-    };
+    },
+};
 
+export default function ApplicationsOverTimeChart() {
     return (
-        <div className="bg-white  shadow-sm border border-gray-200 p-6 mb-6">
-            <div className="flex items-center justify-between mb-5">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
+            <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                        🔥 Top Trending Skills
+                    <h2 className="text-lg font-semibold text-slate-900">
+                        Applications Over Time
                     </h2>
-                    <p className="text-sm text-gray-500">
-                        Most in-demand technologies based on current job listings.
+                    <p className="text-sm text-slate-500">
+                        Track your daily job applications.
                     </p>
+                </div>
+
+                <div className="text-right">
+                    <p className="text-2xl font-bold text-blue-600">38</p>
+                    <span className="text-xs text-green-600">
+                        ↑ 18% vs last week
+                    </span>
                 </div>
             </div>
 
             <div className="h-80">
-                <Bar data={data} options={options} />
-            </div>
-
-            <div className="mt-6 space-y-3">
-                {trendingSkills.map((skill) => (
-                    <div
-                        key={skill.skill}
-                        className="flex items-center justify-between border-b border-gray-100 pb-3"
-                    >
-                        <div>
-                            <h4 className="font-medium text-gray-900">
-                                {skill.skill}
-                            </h4>
-                            <p className="text-sm text-gray-500">
-                                {skill.jobs.toLocaleString()} Open Jobs
-                            </p>
-                        </div>
-
-                        <span className="font-semibold text-green-600">
-                            ▲ {skill.growth}
-                        </span>
-                    </div>
-                ))}
+                <Line data={data} options={options} />
             </div>
         </div>
     );
