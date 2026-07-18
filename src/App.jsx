@@ -6,7 +6,7 @@ import { ResumeUploadScreen } from './screens/ResumeUploadScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { JobExplorerScreen } from './screens/JobExplorerScreen';
 
-import RecentActivityTimeline from './components/RecentActivityTimeline';
+import RecentActivityTimeline from './screens/RecentActivityTimeline';
 import TrendingSkills from './components/TrendingSkills';
 
 function App() {
