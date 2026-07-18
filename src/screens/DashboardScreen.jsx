@@ -9,9 +9,6 @@ import { Card, Badge, Button, Skeleton, EmptyState } from '../components/ui';
 import { useApp } from '../context/AppContext';
 import { APPLICATION_STATUS_META } from '../types';
 import { cn, initials, formatDate } from '../lib/utils';
-import ApplicationsOverTimeChart from '../components/ApplicationsOverTimeChart';
-import RecentActivityTimeline from '../components/RecentActivityTimeline';
-import TrendingSkills from '../components/TrendingSkills';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -84,7 +81,7 @@ export function DashboardScreen({ onNavigate }) {
 
   const kpis = [
     { label: 'Total Jobs', value: jobs.length, icon: Briefcase, color: 'brand' },
-    { label: 'Fresher', value: 25, icon: Bookmark, color: 'amber' },
+    { label: 'Saved Jobs', value: savedJobs.length, icon: Bookmark, color: 'amber' },
     { label: 'Applications', value: applications.length, icon: Send, color: 'blue' },
     { label: 'Interviews', value: stats.byStatus.interview + stats.byStatus.offer, icon: TrendingUp, color: 'emerald' },
   ];
@@ -106,9 +103,30 @@ export function DashboardScreen({ onNavigate }) {
         <Button onClick={() => onNavigate('explorer')} icon={<ArrowRight size={16} />}>Explore Jobs</Button>
       </header>
 
-
-
-
+      {/* Profile banner */}
+      <Card className="p-5 mb-6 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-brand-50 to-transparent rounded-full -translate-y-1/2 translate-x-1/3" />
+        <div className="relative flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white text-lg font-bold shrink-0">
+            {initials(profile?.name)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-bold text-slate-900 text-lg truncate">{profile?.name || 'Guest User'}</h2>
+            <p className="text-sm text-slate-500 truncate">{profile?.title || 'No title set'}{profile?.email ? ` • ${profile.email}` : ''}</p>
+            {profile?.skills && profile.skills.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {profile.skills.slice(0, 5).map((s) => (
+                  <Badge key={s} className="bg-brand-50 text-brand-700 text-[10px]">{s}</Badge>
+                ))}
+                {profile.skills.length > 5 && <Badge className="bg-slate-100 text-slate-500 text-[10px]">+{profile.skills.length - 5}</Badge>}
+              </div>
+            )}
+          </div>
+          {!profile && (
+            <Button variant="outline" size="sm" onClick={() => onNavigate('resume')} icon={<Sparkles size={14} />}>Upload Resume</Button>
+          )}
+        </div>
+      </Card>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -118,7 +136,7 @@ export function DashboardScreen({ onNavigate }) {
           return (
             <Card key={kpi.label} className="p-5 hover:card-shadow-lg transition-shadow duration-200">
               <div className="flex items-center justify-between mb-3">
-                <div className={cn('w-10 h-10  flex items-center justify-center ring-4', c.bg, c.text, c.ring)}>
+                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center ring-4', c.bg, c.text, c.ring)}>
                   <Icon size={20} />
                 </div>
               </div>
@@ -130,10 +148,9 @@ export function DashboardScreen({ onNavigate }) {
       </div>
 
       {/* NEW: Application timeline KPIs (week / month / year) */}
-      {/* 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <Card className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10  bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
             <Clock size={18} />
           </div>
           <div>
@@ -142,7 +159,7 @@ export function DashboardScreen({ onNavigate }) {
           </div>
         </Card>
         <Card className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10  bg-brand-50 flex items-center justify-center text-brand-600 shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 shrink-0">
             <Calendar size={18} />
           </div>
           <div>
@@ -151,7 +168,7 @@ export function DashboardScreen({ onNavigate }) {
           </div>
         </Card>
         <Card className="p-4 flex items-center gap-3">
-          <div className="w-10 h-10  bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
             <TrendingUp size={18} />
           </div>
           <div>
@@ -159,11 +176,7 @@ export function DashboardScreen({ onNavigate }) {
             <p className="text-[11px] text-slate-500 font-medium">Applied (last year)</p>
           </div>
         </Card>
-      </div> */}
-
-
-      <ApplicationsOverTimeChart />
-
+      </div>
 
       {/* Charts row 1 */}
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
@@ -208,10 +221,45 @@ export function DashboardScreen({ onNavigate }) {
         </Card>
       </div>
 
-
-
-
-
+      {/* NEW: Last 10 Applied Jobs chart */}
+      <Card className="p-5 mb-6">
+        <h3 className="font-bold text-slate-800 text-sm mb-4">Last 10 Applied Jobs</h3>
+        {stats.appliedJobs.length === 0 ? (
+          <EmptyState icon={<Send size={24} />} title="No applications yet" description="Jobs you apply to will appear here in a timeline." />
+        ) : (
+          <Bar
+            data={{
+              labels: stats.appliedJobs.map((j, i) => `#${i + 1}`),
+              datasets: [{
+                label: 'Application',
+                data: stats.appliedJobs.map((_, i) => stats.appliedJobs.length - i),
+                backgroundColor: stats.appliedJobs.map((j) =>
+                  j.status === 'offer' ? '#10b981' : j.status === 'interview' ? '#f59e0b' : j.status === 'rejected' ? '#f43f5e' : '#3b82f6'
+                ),
+                borderRadius: 6,
+                maxBarThickness: 35,
+              }],
+            }}
+            options={{
+              indexAxis: 'y',
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    title: (ctx) => stats.appliedJobs[ctx[0].dataIndex]?.title || '',
+                    label: (ctx) => {
+                      const j = stats.appliedJobs[ctx.dataIndex];
+                      return [`${j.company || '—'}`, `Applied: ${formatDate(j.date)}`, `Status: ${APPLICATION_STATUS_META[j.status]?.label || j.status}`];
+                    },
+                  },
+                },
+              },
+              scales: { x: { display: false }, y: { ticks: { font: { size: 11 } } } },
+              maintainAspectRatio: true,
+            }}
+          />
+        )}
+      </Card>
 
       {/* Charts row 2 */}
       <div className="grid lg:grid-cols-2 gap-4">
@@ -272,7 +320,7 @@ export function DashboardScreen({ onNavigate }) {
               const meta = APPLICATION_STATUS_META[app.status];
               return (
                 <div key={app.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <div className="w-8 h-8  bg-slate-100 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
                     <Building2 size={15} className="text-slate-500" />
                   </div>
                   <div className="min-w-0 flex-1">
