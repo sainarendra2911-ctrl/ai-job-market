@@ -17,7 +17,7 @@ function App() {
         {screen === 'dashboard' && <DashboardScreen onNavigate={setScreen} />}
         {screen === 'explorer' && <JobExplorerScreen />}
 
-                {screen === 'recent' && <RecentActivityTimeline />}
+        {screen === 'recent' && <RecentActivityTimeline />}
         {screen === 'trending' && <TrendingSkills />}
       </Layout>
     </AppProvider>
