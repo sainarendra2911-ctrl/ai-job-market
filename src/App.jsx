@@ -7,7 +7,7 @@ import { DashboardScreen } from './screens/DashboardScreen';
 import { JobExplorerScreen } from './screens/JobExplorerScreen';
 
 import RecentActivityTimeline from './screens/RecentActivityTimeline';
-import TrendingSkills from './components/TrendingSkills';
+import TrendingSkills from './screens/TrendingSkills';
 
 function App() {
   const [screen, setScreen] = useState('dashboard');
