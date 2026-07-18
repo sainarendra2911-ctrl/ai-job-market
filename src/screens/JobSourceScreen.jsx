@@ -158,14 +158,12 @@ export function JobSourceScreen({ onNavigate }) {
 }
 
 function LiveJobSearch({ onImported }) {
-  const { importJobs } = useApp();
   const [query, setQuery] = useState('');
   const [source, setSource] = useState('LinkedIn');
   const [location, setLocation] = useState('');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
-  const [importing, setImporting] = useState(false);
 
   const search = async () => {
     if (!query.trim()) return;
@@ -186,7 +184,7 @@ function LiveJobSearch({ onImported }) {
       const data = await res.json();
       const jobs = data.jobs ?? [];
       if (!jobs.length) {
-        setError('No live jobs found. Try a different query or source.');
+        setError('No jobs found matching your criteria. Try a different query, source, or location.');
       } else {
         setResults(jobs);
       }
@@ -194,20 +192,6 @@ function LiveJobSearch({ onImported }) {
       setError(e instanceof Error ? e.message : 'Search failed');
     } finally {
       setSearching(false);
-    }
-  };
-
-  const importResults = async () => {
-    if (!results?.length) return;
-    setImporting(true);
-    try {
-      await importJobs(results);
-      setResults(null);
-      onImported();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Import failed');
-    } finally {
-      setImporting(false);
     }
   };
 
@@ -219,7 +203,7 @@ function LiveJobSearch({ onImported }) {
         </div>
         <div>
           <h2 className="font-bold text-slate-900 text-base">Search Live Jobs</h2>
-          <p className="text-xs text-slate-500">Fetch current listings from job platforms</p>
+          <p className="text-xs text-slate-500">Find listings from your job database</p>
         </div>
       </div>
 
@@ -232,6 +216,7 @@ function LiveJobSearch({ onImported }) {
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Source</label>
             <Select value={source} onChange={(e) => setSource(e.target.value)}>
+              <option value="">All sources</option>
               {SOURCES.filter((s) => s !== 'Upload').map((s) => <option key={s} value={s}>{s}</option>)}
             </Select>
           </div>
@@ -253,15 +238,15 @@ function LiveJobSearch({ onImported }) {
       {results && (
         <div className="mt-4 animate-fade-in">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-slate-700">{results.length} live result{results.length === 1 ? '' : 's'}</span>
-            <Button size="sm" onClick={importResults} loading={importing}>Import all</Button>
+            <span className="text-sm font-semibold text-slate-700">{results.length} result{results.length === 1 ? '' : 's'} found</span>
+            <Button size="sm" onClick={onImported} icon={<ArrowRight size={14} />}>View in Explorer</Button>
           </div>
           <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100">
             {results.map((r, i) => (
-              <div key={i} className="px-3 py-2.5 text-xs">
+              <div key={r.id || i} className="px-3 py-2.5 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-slate-800 truncate">{r.title}</span>
-                  <Badge className="bg-emerald-100 text-emerald-700 shrink-0">{r.source}</Badge>
+                  {r.source && <Badge className="bg-emerald-100 text-emerald-700 shrink-0">{r.source}</Badge>}
                 </div>
                 <p className="text-slate-500 mt-0.5 truncate">{r.company}{r.location ? ` • ${r.location}` : ''}</p>
               </div>
@@ -273,7 +258,7 @@ function LiveJobSearch({ onImported }) {
       <div className="mt-4 pt-4 border-t border-slate-100">
         <div className="flex items-start gap-2 text-[11px] text-slate-400 leading-relaxed">
           <FileText size={13} className="shrink-0 mt-0.5" />
-          <p>Live search uses a server-side edge function. Results are fetched and normalized to match your job schema, then imported into your database.</p>
+          <p>Live search queries your job database via a server-side edge function. Results are filtered by keywords, source, and location.</p>
         </div>
       </div>
     </Card>
