@@ -172,11 +172,23 @@ function LiveJobSearch({ onImported }) {
     setResults(null);
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-live-jobs`;
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
-        body: JSON.stringify({ query, source, location }),
-      });
+
+
+
+const res = await fetch(apiUrl, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+  },
+  body: JSON.stringify({
+    query,
+    source,
+    location,
+  }),
+});
+    
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || `Search failed (${res.status})`);
