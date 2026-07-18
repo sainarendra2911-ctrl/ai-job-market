@@ -148,7 +148,7 @@ export function DashboardScreen({ onNavigate }) {
         })}
       </div>
 
-      {/* {/* NEW: Application timeline KPIs (week / month / year) */}
+      {/* NEW: Application timeline KPIs (week / month / year) */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <Card className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
@@ -178,7 +178,7 @@ export function DashboardScreen({ onNavigate }) {
           </div>
         </Card>
       </div>
- */}
+
        <ApplicationsOverTimeChart />
 
       {/* Charts row 1 */}
