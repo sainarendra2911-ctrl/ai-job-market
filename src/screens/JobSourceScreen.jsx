@@ -64,7 +64,7 @@ export function JobSourceScreen({ onNavigate }) {
       <div className="grid lg:grid-cols-2 gap-6">
         <Card className="p-6">
           <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-9 h-9 rounded-lg bg-brand-50 flex items-center justify-center">
+            <div className="w-9 h-9  bg-brand-50 flex items-center justify-center">
               <UploadCloud className="text-brand-600" size={18} />
             </div>
             <div>
@@ -78,9 +78,8 @@ export function JobSourceScreen({ onNavigate }) {
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
             onClick={() => inputRef.current?.click()}
-            className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${
-              dragOver ? 'border-brand-500 bg-brand-50/50 scale-[1.01]' : 'border-slate-300 hover:border-brand-400 hover:bg-slate-50'
-            }`}
+            className={`relative border-2 border-dashed  p-8 text-center cursor-pointer transition-all duration-200 ${dragOver ? 'border-brand-500 bg-brand-50/50 scale-[1.01]' : 'border-slate-300 hover:border-brand-400 hover:bg-slate-50'
+              }`}
           >
             <input ref={inputRef} type="file" accept={ACCEPTED} className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
             {parsing ? (
@@ -90,7 +89,7 @@ export function JobSourceScreen({ onNavigate }) {
               </div>
             ) : (
               <>
-                <div className="w-12 h-12 mx-auto rounded-xl bg-slate-100 flex items-center justify-center mb-3">
+                <div className="w-12 h-12 mx-auto  bg-slate-100 flex items-center justify-center mb-3">
                   <UploadCloud className="text-slate-400" size={24} />
                 </div>
                 <p className="text-sm font-semibold text-slate-700 mb-1">Drop file here or click to browse</p>
@@ -105,7 +104,7 @@ export function JobSourceScreen({ onNavigate }) {
           </div>
 
           {error && (
-            <div className="mt-4 flex items-start gap-2 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm animate-fade-in">
+            <div className="mt-4 flex items-start gap-2 p-3  bg-rose-50 border border-rose-200 text-rose-700 text-sm animate-fade-in">
               <AlertCircle size={16} className="shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
@@ -120,7 +119,7 @@ export function JobSourceScreen({ onNavigate }) {
                 </div>
                 <Button size="sm" onClick={doImport} loading={importing}>Import all</Button>
               </div>
-              <div className="max-h-48 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100">
+              <div className="max-h-48 overflow-y-auto  border border-slate-200 divide-y divide-slate-100">
                 {parsedRows.slice(0, 50).map((r, i) => (
                   <div key={i} className="flex items-center gap-3 px-3 py-2 text-xs">
                     <span className="font-medium text-slate-800 truncate flex-1">{r.title}</span>
@@ -134,7 +133,7 @@ export function JobSourceScreen({ onNavigate }) {
           )}
 
           {result && (
-            <div className={`mt-4 flex items-center gap-2 p-3 rounded-lg text-sm animate-fade-in ${result.ok ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'}`}>
+            <div className={`mt-4 flex items-center gap-2 p-3  text-sm animate-fade-in ${result.ok ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'}`}>
               {result.ok ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
               <span>{result.msg}</span>
               {result.ok && <button onClick={() => onNavigate('explorer')} className="ml-auto text-xs font-semibold text-brand-700 hover:text-brand-800 flex items-center gap-1">View jobs <ArrowRight size={12} /></button>}
@@ -158,12 +157,14 @@ export function JobSourceScreen({ onNavigate }) {
 }
 
 function LiveJobSearch({ onImported }) {
+  const { importJobs } = useApp();
   const [query, setQuery] = useState('');
   const [source, setSource] = useState('LinkedIn');
   const [location, setLocation] = useState('');
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [importing, setImporting] = useState(false);
 
   const search = async () => {
     if (!query.trim()) return;
@@ -172,23 +173,11 @@ function LiveJobSearch({ onImported }) {
     setResults(null);
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-live-jobs`;
-
-
-
-const res = await fetch(apiUrl, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-  },
-  body: JSON.stringify({
-    query,
-    source,
-    location,
-  }),
-});
-    
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({ query, source, location }),
+      });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || `Search failed (${res.status})`);
@@ -196,7 +185,7 @@ const res = await fetch(apiUrl, {
       const data = await res.json();
       const jobs = data.jobs ?? [];
       if (!jobs.length) {
-        setError('No jobs found matching your criteria. Try a different query, source, or location.');
+        setError('No live jobs found. Try a different query or source.');
       } else {
         setResults(jobs);
       }
@@ -207,15 +196,29 @@ const res = await fetch(apiUrl, {
     }
   };
 
+  const importResults = async () => {
+    if (!results?.length) return;
+    setImporting(true);
+    try {
+      await importJobs(results);
+      setResults(null);
+      onImported();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Import failed');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <Card className="p-6">
       <div className="flex items-center gap-2.5 mb-4">
-        <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
+        <div className="w-9 h-9  bg-emerald-50 flex items-center justify-center">
           <Globe className="text-emerald-600" size={18} />
         </div>
         <div>
           <h2 className="font-bold text-slate-900 text-base">Search Live Jobs</h2>
-          <p className="text-xs text-slate-500">Find listings from your job database</p>
+          <p className="text-xs text-slate-500">Fetch current listings from job platforms</p>
         </div>
       </div>
 
@@ -228,7 +231,6 @@ const res = await fetch(apiUrl, {
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Source</label>
             <Select value={source} onChange={(e) => setSource(e.target.value)}>
-              <option value="">All sources</option>
               {SOURCES.filter((s) => s !== 'Upload').map((s) => <option key={s} value={s}>{s}</option>)}
             </Select>
           </div>
@@ -237,11 +239,11 @@ const res = await fetch(apiUrl, {
             <Input placeholder="e.g. Remote, NYC" value={location} onChange={(e) => setLocation(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search()} />
           </div>
         </div>
-        <Button onClick={search} loading={searching} className="w-full" icon={<Search size={16} />}>Search Jobs</Button>
+        <Button onClick={search} loading={searching} className="w-full bg-sky-300" icon={<Search size={16} />}>Search Jobs</Button>
       </div>
 
       {error && (
-        <div className="mt-4 flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm animate-fade-in">
+        <div className="mt-4 flex items-start gap-2 p-3  bg-amber-50 border border-amber-200 text-amber-700 text-sm animate-fade-in">
           <AlertCircle size={16} className="shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
@@ -250,15 +252,15 @@ const res = await fetch(apiUrl, {
       {results && (
         <div className="mt-4 animate-fade-in">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-slate-700">{results.length} result{results.length === 1 ? '' : 's'} found</span>
-            <Button size="sm" onClick={onImported} icon={<ArrowRight size={14} />}>View in Explorer</Button>
+            <span className="text-sm font-semibold text-slate-700">{results.length} live result{results.length === 1 ? '' : 's'}</span>
+            <Button size="sm" onClick={importResults} loading={importing}>Import all</Button>
           </div>
-          <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100">
+          <div className="max-h-56 overflow-y-auto  border border-slate-200 divide-y divide-slate-100">
             {results.map((r, i) => (
-              <div key={r.id || i} className="px-3 py-2.5 text-xs">
+              <div key={i} className="px-3 py-2.5 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-slate-800 truncate">{r.title}</span>
-                  {r.source && <Badge className="bg-emerald-100 text-emerald-700 shrink-0">{r.source}</Badge>}
+                  <Badge className="bg-emerald-100 text-emerald-700 shrink-0">{r.source}</Badge>
                 </div>
                 <p className="text-slate-500 mt-0.5 truncate">{r.company}{r.location ? ` • ${r.location}` : ''}</p>
               </div>
@@ -270,7 +272,7 @@ const res = await fetch(apiUrl, {
       <div className="mt-4 pt-4 border-t border-slate-100">
         <div className="flex items-start gap-2 text-[11px] text-slate-400 leading-relaxed">
           <FileText size={13} className="shrink-0 mt-0.5" />
-          <p>Live search queries your job database via a server-side edge function. Results are filtered by keywords, source, and location.</p>
+          <p>Live search uses a server-side edge function. Results are fetched and normalized to match your job schema, then imported into your database.</p>
         </div>
       </div>
     </Card>
