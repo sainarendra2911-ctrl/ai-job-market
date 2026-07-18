@@ -16,6 +16,9 @@ function App() {
         {screen === 'resume' && <ResumeUploadScreen onNavigate={setScreen} />}
         {screen === 'dashboard' && <DashboardScreen onNavigate={setScreen} />}
         {screen === 'explorer' && <JobExplorerScreen />}
+
+                {screen === 'recent' && <RecentActivityTimeline />}
+        {screen === 'trending' && <TrendingSkills />}
       </Layout>
     </AppProvider>
   );
