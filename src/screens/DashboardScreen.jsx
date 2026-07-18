@@ -178,6 +178,8 @@ export function DashboardScreen({ onNavigate }) {
         </Card>
       </div>
 
+       <ApplicationsOverTimeChart />
+
       {/* Charts row 1 */}
       <div className="grid lg:grid-cols-3 gap-4 mb-6">
         <Card className="p-5">
