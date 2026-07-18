@@ -9,7 +9,7 @@ import { Card, Badge, Button, Skeleton, EmptyState } from '../components/ui';
 import { useApp } from '../context/AppContext';
 import { APPLICATION_STATUS_META } from '../types';
 import { cn, initials, formatDate } from '../lib/utils';
-  import ApplicationsOverTimeChart from '../components/ApplicationsOverTimeChart';'
+  import ApplicationsOverTimeChart from '../components/ApplicationsOverTimeChart';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Tooltip, Legend, Filler);
 
