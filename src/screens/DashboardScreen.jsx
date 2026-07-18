@@ -225,7 +225,7 @@ export function DashboardScreen({ onNavigate }) {
       </div>
 
       {/* NEW: Last 10 Applied Jobs chart */}
-      <Card className="p-5 mb-6">
+      {/* <Card className="p-5 mb-6">
         <h3 className="font-bold text-slate-800 text-sm mb-4">Last 10 Applied Jobs</h3>
         {stats.appliedJobs.length === 0 ? (
           <EmptyState icon={<Send size={24} />} title="No applications yet" description="Jobs you apply to will appear here in a timeline." />
@@ -262,7 +262,7 @@ export function DashboardScreen({ onNavigate }) {
             }}
           />
         )}
-      </Card>
+      </Card> */}
 
       {/* Charts row 2 */}
       <div className="grid lg:grid-cols-2 gap-4">
