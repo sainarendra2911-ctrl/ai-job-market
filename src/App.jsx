@@ -5,6 +5,7 @@ import { JobSourceScreen } from './screens/JobSourceScreen';
 import { ResumeUploadScreen } from './screens/ResumeUploadScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { JobExplorerScreen } from './screens/JobExplorerScreen';
+import {RecentActivityTimeline} from "./screens/RecentActivityTimeline"
 
 function App() {
   const [screen, setScreen] = useState('dashboard');
